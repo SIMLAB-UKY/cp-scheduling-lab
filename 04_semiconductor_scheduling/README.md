@@ -71,7 +71,32 @@ oplrun .\04_semiconductor_scheduling\fab_scheduler.mod
 
 ## Results
 
-To be populated after running and validating the model.
+IBM CP Optimizer 22.2 produced the following optimal solution:
+
+| Metric | Result |
+|---|---:|
+| Objective value | 17 |
+| Best bound | 17 |
+| Optimality gap | 0% |
+| Weighted tardiness | 0 |
+| Makespan | 17 time units |
+| Solve time | 0.05 seconds |
+| Solver variables | 27 |
+| Solver constraints | 21 |
+
+### Lot Completion
+
+| Lot | Release | Due | Completion | Tardiness |
+|---|---:|---:|---:|---:|
+| L1 | 0 | 11 | 11 | 0 |
+| L2 | 2 | 14 | 14 | 0 |
+| L3 | 4 | 17 | 17 | 0 |
+
+### Verification
+
+All nine operations were assigned to eligible tools. Each lot followed its required operation sequence, and no tool processed overlapping operations. Tool M2 was unavailable during its maintenance period from time 5 to 8.
+
+The reported objective and best bound were both 17, confirming global optimality under the specified model.
 
 ## Limitations
 
