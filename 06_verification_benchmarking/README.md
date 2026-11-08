@@ -72,15 +72,3 @@ Every run must satisfy: 90 operations exactly once; tool eligibility; processing
 ## Interpretation
 
 This Phase 6 benchmark is a **methods-and-engineering portfolio project**, not proof that decomposition wins. The initial lot-based LNS improved its greedy seed but did not beat monolithic CP. Repeating on more random seeds/instances, experimenting with monolithic-initialized LNS, and trying larger neighborhoods are appropriate *future work*.
-
-## Git commit
-
-From the repository root:
-
-```powershell
-git add 06_verification_benchmarking/
-git commit -m "Add Phase 6 CP scheduling benchmark and verification runner"
-git push
-```
-
-Keep the `results/` folder out of Git until reviewing it. Instead, copy verified summary metrics from `results.md` into this README or a separate curated `BENCHMARK_RESULTS.md`.
