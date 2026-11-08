@@ -43,37 +43,83 @@ Run the Python-only unit tests:
 python .\test_decomposition.py
 ```
 
-## Baseline and results
+## Results and Benchmark Comparison
 
-Phase 5A: five-second monolithic search returned weighted tardiness **1,363**, makespan **151**, objective **478,564**, best bound **66**; the schedule passed independent validation. It was **not** proven optimal.
+The decomposition algorithm was evaluated on the same synthetic semiconductor scheduling benchmark as the monolithic CP model.
 
-Phase 5B results should be recorded only after running the CP subproblems locally. In particular, **greedy-only is not a claim of CP decomposition improvement**. The Python-only baseline produced a feasible schedule with weighted tardiness **2,249**, makespan **199**, objective **789,598**; it is an initial point, not a benchmark winner.
+### Benchmark Configuration
 
-| Method | End-to-end time | Weighted tardiness | Makespan | Combined objective | Independently verified? |
+| Parameter | Value |
+|---|---|
+| Wafer lots | 30 |
+| Operations per lot | 3 |
+| Total operations | 90 |
+| Processing tools | 5 |
+| Optimization solver | IBM CP Optimizer 22.2 |
+| Objective | Minimize weighted tardiness, then makespan |
+| Decomposition method | Lot-based CP Large Neighborhood Search |
+| Subproblem batch size | 10 lots |
+| Independent verification | `verify_schedule.py` |
+
+### Performance Comparison
+
+| Method | Weighted Tardiness | Makespan | Combined Objective | Runtime | Verification |
 |---|---:|---:|---:|---:|---|
-| Monolithic CP, 5s (observed) | 5.01s solve | 1363 | 151 | 478564 | Yes |
-| Decomposed CP, 5s | Run locally | — | — | — | Pending |
-| Monolithic CP, 30s | Run locally | — | — | — | Pending |
-| Decomposed CP, 30s | Run locally | — | — | — | Pending |
+| Monolithic CP (5s) | **1,363** | **151** | **478,564** | 5.01 s | PASS |
+| Decomposition (5s budget) | 1,778 | 173 | 624,251 | 3.24 s | Internal PASS |
+| Decomposition (30s budget) | 1,715 | 159 | 602,124 | 14.26 s | PASS |
 
-**Fairness notes:** CP search limits do not account for OPL startup/generation/output, and the monolithic baseline reports solver time whereas this orchestrator reports end-to-end wall-clock time. For a strong comparison, time the complete monolithic `oplrun` command in PowerShell with `Measure-Command` as well. Due to concurrent CP workers, runs can vary. Repeat comparisons over multiple runs and preferably multiple synthetic instances.
+**Note:** The monolithic runtime represents CP Optimizer solver time, while decomposition runtime includes orchestration. The results are preliminary and are not a strictly equal wall-clock comparison.
 
-## Limitations
+### Decomposition Search Progress
 
-- Fixing the other lots restricts the neighborhood; important improvements may require moving many lots simultaneously. Local optimality is not global optimality.
-- A short CP time limit can produce no usable schedule; the script keeps the last validated schedule.
-- The 30-second budget is an **approximate** wall-clock cap: a subproblem may require extra startup/cleanup time. Inspect the actual elapsed time printed by the script.
-- No objective lower bound is provided by the decomposition controller. Do not interpret the monolithic CP bound as an LNS bound.
-- This is a synthetic benchmark, not an Intel dataset or a deployable manufacturing control system.
+The decomposition algorithm started with a greedy feasible schedule and iteratively re-optimized selected groups of 10 lots.
 
-## Repository milestone
+| Metric | Initial Solution | 5s Budget | 30s Budget |
+|---|---:|---:|---:|
+| Combined objective | 789,598 | 624,251 | 602,124 |
+| Weighted tardiness | 2,249 | 1,778 | 1,715 |
+| Makespan | 199 | 173 | 159 |
+| CP subproblems solved | 0 | 3 | 6 |
+| Accepted improvements | — | 3 | 4 |
+| Elapsed time | — | 3.24 s | 14.26 s |
+| Objective reduction from initial solution | — | 20.9% | 23.7% |
 
-Once local CP execution and verification pass:
+### Key Findings
 
-```powershell
-git add 05_decomposition/02_lot_decomposition/
-git commit -m "Add validated lot-based CP decomposition baseline"
-git push
-```
+1. **The decomposition algorithm successfully improved the initial feasible schedule.** The combined objective decreased by 23.7% in the longer experiment.
 
-Keep solver logs out of Git using `*.log` in `.gitignore` unless intentionally reporting a sanitized benchmark result.
+2. **Monolithic CP outperformed the initial decomposition approach.** The monolithic model achieved a combined objective of 478,564, compared with 602,124 for the best decomposed schedule.
+
+3. **Decomposition preserved feasibility.** The 30-second-budget schedule passed independent verification of all 90 operations, including processing times, tool eligibility, precedence constraints, release times, maintenance restrictions, and machine capacity.
+
+4. **Fixing operations outside each neighborhood can limit solution quality.** Better solutions may require coordinated changes across multiple groups of lots.
+
+5. **Increasing the allowed search budget did not proportionally increase runtime.** The 30-second-budget experiment ended after 14.26 seconds because the maximum number of six subproblems was reached.
+
+### Limitations
+
+- The experiment uses one synthetic 30-lot benchmark.
+- The decomposition method begins from a greedy initial schedule.
+- Neighborhoods contain 10 selected lots, with the remaining operations fixed.
+- No global optimality guarantee is established for the decomposition algorithm.
+- Computational budgets are not yet strictly comparable across methods.
+- The five-second decomposition schedule passed internal checks but its independent verifier result has not yet been recorded.
+
+### Next Improvements
+
+- Initialize Large Neighborhood Search using a feasible monolithic CP solution.
+- Explore different neighborhood sizes and lot-selection strategies.
+- Compare methods under equal end-to-end wall-clock budgets.
+- Evaluate multiple benchmark instances and random seeds.
+- Record objective quality, solver bounds, runtime, and feasibility systematically.
+
+### Conclusion
+
+This experiment demonstrates a working CP-based decomposition framework for semiconductor scheduling.
+
+Although the initial decomposition method did not outperform monolithic CP, it substantially improved its greedy starting solution while preserving schedule feasibility.
+
+The main lesson is that **decomposition is not automatically superior to monolithic optimization**. Its effectiveness depends on the initial solution, neighborhood selection, coordination between subproblems, and computational budget.
+
+
